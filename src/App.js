@@ -851,7 +851,9 @@ const TaskManager = () => {
                       ))}
 
                       {showSubtaskForm === task.id ? (
-                        <div className="bg-white p-4 rounded-lg border-2 border-blue-200 mt-3">
+                        <div
+                          className={`${getThemeClasses.cardBackground} p-4 rounded-lg border-2 border-blue-200 dark:border-blue-600 mt-3 ${getThemeClasses.border}`}
+                        >
                           <input
                             type="text"
                             placeholder="Subtask title"
@@ -862,10 +864,12 @@ const TaskManager = () => {
                                 title: e.target.value,
                               })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className={`w-full px-3 py-2 border rounded-lg mb-3 ${getThemeClasses.inputBackground} ${getThemeClasses.inputBorder} ${getThemeClasses.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500`}
                           />
                           <div className="mb-3">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label
+                              className={`block text-sm font-medium ${getThemeClasses.text} mb-1`}
+                            >
                               Status
                             </label>
                             <select
@@ -876,7 +880,7 @@ const TaskManager = () => {
                                   status: e.target.value,
                                 })
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className={`w-full px-3 py-2 border rounded-lg ${getThemeClasses.inputBackground} ${getThemeClasses.inputBorder} ${getThemeClasses.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                             >
                               <option value="todo">To Do</option>
                               <option value="ongoing">On-Going</option>
@@ -885,7 +889,9 @@ const TaskManager = () => {
                           </div>
                           <div className="grid grid-cols-2 gap-3 mb-3">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                              <label
+                                className={`block text-sm font-medium ${getThemeClasses.text} mb-1`}
+                              >
                                 To-Do Date
                               </label>
                               <input
@@ -897,11 +903,13 @@ const TaskManager = () => {
                                     todoDate: e.target.value,
                                   })
                                 }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full px-3 py-2 border rounded-lg ${getThemeClasses.inputBackground} ${getThemeClasses.inputBorder} ${getThemeClasses.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                              <label
+                                className={`block text-sm font-medium ${getThemeClasses.text} mb-1`}
+                              >
                                 Deadline
                               </label>
                               <input
@@ -913,7 +921,7 @@ const TaskManager = () => {
                                     deadline: e.target.value,
                                   })
                                 }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full px-3 py-2 border rounded-lg ${getThemeClasses.inputBackground} ${getThemeClasses.inputBorder} ${getThemeClasses.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                               />
                             </div>
                           </div>
@@ -934,7 +942,7 @@ const TaskManager = () => {
                                   status: "todo",
                                 });
                               }}
-                              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                              className={`px-4 py-2 ${getThemeClasses.buttonSecondary} rounded-lg transition-colors`}
                             >
                               Cancel
                             </button>
