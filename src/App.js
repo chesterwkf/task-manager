@@ -241,6 +241,9 @@ const TaskManager = () => {
   });
   const [newChecklistItem, setNewChecklistItem] = useState("");
 
+  // Drag and drop state
+  const [draggedItem, setDraggedItem] = useState(null);
+
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
@@ -552,6 +555,53 @@ const TaskManager = () => {
     });
   };
 
+  // Kanban board helper functions
+  const getTodaysSubtasks = () => {
+    const today = new Date().toISOString().split("T")[0];
+    const todaysSubtasks = [];
+
+    tasks.forEach((task) => {
+      task.subtasks.forEach((subtask) => {
+        if (subtask.todoDate === today) {
+          todaysSubtasks.push({
+            ...subtask,
+            taskTitle: task.title,
+            taskId: task.id,
+          });
+        }
+      });
+    });
+
+    return todaysSubtasks;
+  };
+
+  const getSubtasksByStatus = (status) => {
+    return getTodaysSubtasks().filter((subtask) => subtask.status === status);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, subtask) => {
+    setDraggedItem(subtask);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e, newStatus) => {
+    e.preventDefault();
+    if (draggedItem && draggedItem.status !== newStatus) {
+      updateSubtaskStatus(draggedItem.taskId, draggedItem.id, newStatus);
+    }
+    setDraggedItem(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+  };
+
   return (
     <div
       className={`min-h-screen ${getThemeClasses.background} p-6 transition-colors`}
@@ -621,6 +671,16 @@ const TaskManager = () => {
               }`}
             >
               Table View
+            </button>
+            <button
+              onClick={() => setView("kanban")}
+              className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                view === "kanban"
+                  ? "bg-blue-600 text-white"
+                  : `${getThemeClasses.buttonSecondary}`
+              }`}
+            >
+              Board View
             </button>
           </div>
         </div>
@@ -1375,6 +1435,337 @@ const TaskManager = () => {
               {getAllSubtasks().length === 0 && (
                 <div className="text-center py-12 text-gray-500">
                   No subtasks yet. Add some tasks and subtasks to get started!
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Kanban Board View */}
+        {view === "kanban" && (
+          <div>
+            {/* Header */}
+            <div className="mb-6">
+              <h2
+                className={`text-2xl font-semibold ${getThemeClasses.text} mb-2`}
+              >
+                Today's Tasks -{" "}
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </h2>
+              <p className={getThemeClasses.textSecondary}>
+                Drag and drop tasks between columns to update their status
+              </p>
+            </div>
+
+            {/* Kanban Columns */}
+            <div className="grid grid-cols-3 gap-6">
+              {/* To-Do Column */}
+              <div
+                className={`${getThemeClasses.cardBackground} rounded-lg shadow-sm overflow-hidden ${getThemeClasses.border} border transition-colors`}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, "todo")}
+              >
+                <div className="bg-red-100 dark:bg-red-900 p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-red-800 dark:text-red-200 flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    To-Do
+                    <span className="bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 px-2 py-1 rounded-full text-xs">
+                      {getSubtasksByStatus("todo").length}
+                    </span>
+                  </h3>
+                </div>
+                <div className="p-4 space-y-3 min-h-[400px]">
+                  {getSubtasksByStatus("todo").map((subtask) => (
+                    <div
+                      key={`${subtask.taskId}-${subtask.id}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, subtask)}
+                      onDragEnd={handleDragEnd}
+                      className={`${
+                        getThemeClasses.subtaskBackground
+                      } p-3 rounded-lg border ${
+                        getThemeClasses.border
+                      } cursor-move hover:shadow-md transition-all ${
+                        draggedItem?.id === subtask.id ? "opacity-50" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4
+                          className={`font-medium ${getThemeClasses.text} cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-2`}
+                          onClick={() =>
+                            openDetailModal(
+                              "subtask",
+                              subtask.taskId,
+                              subtask.id
+                            )
+                          }
+                        >
+                          <FileText className="w-3 h-3" />
+                          {subtask.title}
+                        </h4>
+                        <button
+                          onClick={() =>
+                            deleteSubtask(subtask.taskId, subtask.id)
+                          }
+                          className="text-red-500 hover:text-red-600 p-1 hover:bg-red-50 dark:hover:bg-red-900 rounded transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p
+                        className={`text-xs ${getThemeClasses.textSecondary} mb-2`}
+                      >
+                        {subtask.taskTitle}
+                      </p>
+                      {subtask.deadline && (
+                        <div className="flex items-center gap-1 text-xs text-red-500">
+                          <Calendar className="w-3 h-3" />
+                          <span>Due: {formatDate(subtask.deadline)}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {getSubtasksByStatus("todo").length === 0 && (
+                    <div
+                      className={`text-center py-8 ${getThemeClasses.textMuted}`}
+                    >
+                      <div className="text-4xl mb-2">📋</div>
+                      <p>No to-do tasks for today</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ongoing Column */}
+              <div
+                className={`${getThemeClasses.cardBackground} rounded-lg shadow-sm overflow-hidden ${getThemeClasses.border} border transition-colors`}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, "ongoing")}
+              >
+                <div className="bg-yellow-100 dark:bg-yellow-900 p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    Ongoing
+                    <span className="bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full text-xs">
+                      {getSubtasksByStatus("ongoing").length}
+                    </span>
+                  </h3>
+                </div>
+                <div className="p-4 space-y-3 min-h-[400px]">
+                  {getSubtasksByStatus("ongoing").map((subtask) => (
+                    <div
+                      key={`${subtask.taskId}-${subtask.id}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, subtask)}
+                      onDragEnd={handleDragEnd}
+                      className={`${
+                        getThemeClasses.subtaskBackground
+                      } p-3 rounded-lg border ${
+                        getThemeClasses.border
+                      } cursor-move hover:shadow-md transition-all ${
+                        draggedItem?.id === subtask.id ? "opacity-50" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4
+                          className={`font-medium ${getThemeClasses.text} cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-2`}
+                          onClick={() =>
+                            openDetailModal(
+                              "subtask",
+                              subtask.taskId,
+                              subtask.id
+                            )
+                          }
+                        >
+                          <FileText className="w-3 h-3" />
+                          {subtask.title}
+                        </h4>
+                        <button
+                          onClick={() =>
+                            deleteSubtask(subtask.taskId, subtask.id)
+                          }
+                          className="text-red-500 hover:text-red-600 p-1 hover:bg-red-50 dark:hover:bg-red-900 rounded transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p
+                        className={`text-xs ${getThemeClasses.textSecondary} mb-2`}
+                      >
+                        {subtask.taskTitle}
+                      </p>
+                      {subtask.deadline && (
+                        <div className="flex items-center gap-1 text-xs text-red-500">
+                          <Calendar className="w-3 h-3" />
+                          <span>Due: {formatDate(subtask.deadline)}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {getSubtasksByStatus("ongoing").length === 0 && (
+                    <div
+                      className={`text-center py-8 ${getThemeClasses.textMuted}`}
+                    >
+                      <div className="text-4xl mb-2">⚡</div>
+                      <p>No ongoing tasks for today</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Completed Column */}
+              <div
+                className={`${getThemeClasses.cardBackground} rounded-lg shadow-sm overflow-hidden ${getThemeClasses.border} border transition-colors`}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, "completed")}
+              >
+                <div className="bg-green-100 dark:bg-green-900 p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    Completed
+                    <span className="bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-xs">
+                      {getSubtasksByStatus("completed").length}
+                    </span>
+                  </h3>
+                </div>
+                <div className="p-4 space-y-3 min-h-[400px]">
+                  {getSubtasksByStatus("completed").map((subtask) => (
+                    <div
+                      key={`${subtask.taskId}-${subtask.id}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, subtask)}
+                      onDragEnd={handleDragEnd}
+                      className={`${
+                        getThemeClasses.subtaskBackground
+                      } p-3 rounded-lg border ${
+                        getThemeClasses.border
+                      } cursor-move hover:shadow-md transition-all opacity-75 ${
+                        draggedItem?.id === subtask.id ? "opacity-50" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4
+                          className={`font-medium ${getThemeClasses.textMuted} line-through cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-2`}
+                          onClick={() =>
+                            openDetailModal(
+                              "subtask",
+                              subtask.taskId,
+                              subtask.id
+                            )
+                          }
+                        >
+                          <FileText className="w-3 h-3" />
+                          {subtask.title}
+                        </h4>
+                        <button
+                          onClick={() =>
+                            deleteSubtask(subtask.taskId, subtask.id)
+                          }
+                          className="text-red-500 hover:text-red-600 p-1 hover:bg-red-50 dark:hover:bg-red-900 rounded transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p
+                        className={`text-xs ${getThemeClasses.textMuted} mb-2`}
+                      >
+                        {subtask.taskTitle}
+                      </p>
+                      {subtask.deadline && (
+                        <div className="flex items-center gap-1 text-xs text-green-600">
+                          <Calendar className="w-3 h-3" />
+                          <span>Completed</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {getSubtasksByStatus("completed").length === 0 && (
+                    <div
+                      className={`text-center py-8 ${getThemeClasses.textMuted}`}
+                    >
+                      <div className="text-4xl mb-2">🎉</div>
+                      <p>No completed tasks yet</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Summary */}
+            <div
+              className={`mt-6 ${getThemeClasses.cardBackground} rounded-lg p-4 ${getThemeClasses.border} border`}
+            >
+              <h3
+                className={`text-lg font-semibold ${getThemeClasses.text} mb-3`}
+              >
+                Today's Progress
+              </h3>
+              <div className="grid grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${getThemeClasses.text}`}>
+                    {getTodaysSubtasks().length}
+                  </div>
+                  <div className={`text-sm ${getThemeClasses.textSecondary}`}>
+                    Total Tasks
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {getSubtasksByStatus("todo").length}
+                  </div>
+                  <div className={`text-sm ${getThemeClasses.textSecondary}`}>
+                    To-Do
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {getSubtasksByStatus("ongoing").length}
+                  </div>
+                  <div className={`text-sm ${getThemeClasses.textSecondary}`}>
+                    Ongoing
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {getSubtasksByStatus("completed").length}
+                  </div>
+                  <div className={`text-sm ${getThemeClasses.textSecondary}`}>
+                    Completed
+                  </div>
+                </div>
+              </div>
+              {getTodaysSubtasks().length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className={getThemeClasses.textSecondary}>
+                      Progress
+                    </span>
+                    <span className={getThemeClasses.text}>
+                      {Math.round(
+                        (getSubtasksByStatus("completed").length /
+                          getTodaysSubtasks().length) *
+                          100
+                      )}
+                      %
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${
+                          (getSubtasksByStatus("completed").length /
+                            getTodaysSubtasks().length) *
+                          100
+                        }%`,
+                      }}
+                    ></div>
+                  </div>
                 </div>
               )}
             </div>
