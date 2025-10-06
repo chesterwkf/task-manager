@@ -66,12 +66,20 @@ const TableViewSplit = ({
     // Sort by to-do date if sorting is selected
     if (filters.sortByDate) {
       filtered = [...filtered].sort((a, b) => {
-        const dateA = a.todoDate ? new Date(a.todoDate) : new Date(0);
-        const dateB = b.todoDate ? new Date(b.todoDate) : new Date(0);
+        const dateA = a.todoDate ? new Date(a.todoDate) : null;
+        const dateB = b.todoDate ? new Date(b.todoDate) : null;
 
         if (filters.sortByDate === "asc") {
+          // Place tasks without dates at the bottom
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
           return dateA - dateB;
         } else {
+          // Place tasks without dates at the bottom
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
           return dateB - dateA;
         }
       });
