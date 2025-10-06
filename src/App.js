@@ -686,10 +686,10 @@ const TaskManager = () => {
     const today = new Date();
     // Format date in local timezone as YYYY-MM-DD
     const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
     const todayStr = `${year}-${month}-${day}`;
-    
+
     const todaysSubtasks = [];
 
     tasks.forEach((task) => {
@@ -798,6 +798,7 @@ const TaskManager = () => {
         {view === "table" && (
           <TableViewSplit
             tasks={tasks}
+            subjects={subjects}
             showSubtaskForm={showSubtaskForm}
             setShowSubtaskForm={setShowSubtaskForm}
             newSubtask={newSubtask}

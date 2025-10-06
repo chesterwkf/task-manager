@@ -11,6 +11,7 @@ import {
 
 const TableViewSplit = ({
   tasks,
+  subjects,
   showSubtaskForm,
   setShowSubtaskForm,
   newSubtask,
@@ -40,6 +41,16 @@ const TableViewSplit = ({
 
   // State to toggle filter visibility
   const [showFilters, setShowFilters] = useState(false);
+
+  // Helper function to get subject name for a task
+  const getSubjectForTask = (taskId) => {
+    if (!subjects || subjects.length === 0) return "-";
+    const subject = subjects.find((s) => {
+      const taskIds = s.taskIds || [];
+      return taskIds.includes(taskId);
+    });
+    return subject ? subject.name : "-";
+  };
 
   // Filter and sort subtasks based on selected filters
   const filteredSubtasks = useMemo(() => {
@@ -398,6 +409,9 @@ const TableViewSplit = ({
                 Parent Task
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                Subject
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 To-Do Date
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
@@ -453,6 +467,11 @@ const TableViewSplit = ({
                     <td className="px-6 py-4">
                       <span className={getThemeClasses.textSecondary}>
                         {subtask.taskTitle}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={getThemeClasses.textSecondary}>
+                        {getSubjectForTask(subtask.taskId)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -542,6 +561,11 @@ const TableViewSplit = ({
                         onClick={() => openDetailModal("task", subtask.taskId)}
                       >
                         {subtask.taskTitle}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={getThemeClasses.textSecondary}>
+                        {getSubjectForTask(subtask.taskId)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
