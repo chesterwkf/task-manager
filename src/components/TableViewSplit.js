@@ -1,5 +1,13 @@
-import React from "react";
-import { Plus, Edit, Trash2, FileText } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  FileText,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 const TableViewSplit = ({
   tasks,
@@ -22,6 +30,66 @@ const TableViewSplit = ({
   addSubtask,
   getAllSubtasks,
 }) => {
+  // Filter states
+  const [filters, setFilters] = useState({
+    status: "",
+    parentTask: "",
+    todoDate: "",
+    sortByDate: "asc", // Default to ascending, "asc" or "desc"
+  });
+
+  // State to toggle filter visibility
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Filter and sort subtasks based on selected filters
+  const filteredSubtasks = useMemo(() => {
+    let filtered = getAllSubtasks();
+
+    if (filters.status) {
+      filtered = filtered.filter(
+        (subtask) => subtask.status === filters.status
+      );
+    }
+
+    if (filters.parentTask) {
+      filtered = filtered.filter(
+        (subtask) => subtask.taskId === parseInt(filters.parentTask)
+      );
+    }
+
+    if (filters.todoDate) {
+      filtered = filtered.filter(
+        (subtask) => subtask.todoDate === filters.todoDate
+      );
+    }
+
+    // Sort by to-do date if sorting is selected
+    if (filters.sortByDate) {
+      filtered = [...filtered].sort((a, b) => {
+        const dateA = a.todoDate ? new Date(a.todoDate) : new Date(0);
+        const dateB = b.todoDate ? new Date(b.todoDate) : new Date(0);
+
+        if (filters.sortByDate === "asc") {
+          return dateA - dateB;
+        } else {
+          return dateB - dateA;
+        }
+      });
+    }
+
+    return filtered;
+  }, [getAllSubtasks, filters]);
+
+  // Reset all filters
+  const resetFilters = () => {
+    setFilters({
+      status: "",
+      parentTask: "",
+      todoDate: "",
+      sortByDate: "asc", // Keep ascending as default
+    });
+  };
+
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
@@ -35,6 +103,154 @@ const TableViewSplit = ({
           <Plus className="w-4 h-4" />
           Add Subtask
         </button>
+      </div>
+
+      {/* Filter Section */}
+      <div
+        className={`${getThemeClasses.cardBackground} rounded-lg border ${getThemeClasses.border} mb-4 transition-colors`}
+      >
+        {/* Filter Header - Clickable */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`w-full p-4 flex items-center justify-between hover:bg-gray-100/50 dark:hover:bg-gray-700/30 transition-colors rounded-lg`}
+        >
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-blue-600" />
+            <h3 className={`text-sm font-semibold ${getThemeClasses.text}`}>
+              Filters & Sorting
+            </h3>
+            {(filters.status ||
+              filters.parentTask ||
+              filters.todoDate ||
+              filters.sortByDate === "desc") && (
+              <span className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full">
+                Active
+              </span>
+            )}
+          </div>
+          {showFilters ? (
+            <ChevronUp className={`w-4 h-4 ${getThemeClasses.textSecondary}`} />
+          ) : (
+            <ChevronDown
+              className={`w-4 h-4 ${getThemeClasses.textSecondary}`}
+            />
+          )}
+        </button>
+
+        {/* Filter Content - Collapsible */}
+        {showFilters && (
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              {/* Status Filter */}
+              <div>
+                <label
+                  className={`block text-xs font-medium ${getThemeClasses.text} mb-1`}
+                >
+                  Status
+                </label>
+                <select
+                  value={filters.status}
+                  onChange={(e) =>
+                    setFilters({ ...filters, status: e.target.value })
+                  }
+                  className={`w-full px-3 py-2 text-sm border rounded-lg ${getThemeClasses.inputBackground} ${getThemeClasses.inputBorder} ${getThemeClasses.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="todo">To Do</option>
+                  <option value="ongoing">On-Going</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              {/* Parent Task Filter */}
+              <div>
+                <label
+                  className={`block text-xs font-medium ${getThemeClasses.text} mb-1`}
+                >
+                  Parent Task
+                </label>
+                <select
+                  value={filters.parentTask}
+                  onChange={(e) =>
+                    setFilters({ ...filters, parentTask: e.target.value })
+                  }
+                  className={`w-full px-3 py-2 text-sm border rounded-lg ${getThemeClasses.inputBackground} ${getThemeClasses.inputBorder} ${getThemeClasses.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                >
+                  <option value="">All Tasks</option>
+                  {tasks.map((task) => (
+                    <option key={task.id} value={task.id}>
+                      {task.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* To-Do Date Filter */}
+              <div>
+                <label
+                  className={`block text-xs font-medium ${getThemeClasses.text} mb-1`}
+                >
+                  To-Do Date
+                </label>
+                <input
+                  type="date"
+                  value={filters.todoDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, todoDate: e.target.value })
+                  }
+                  className={`w-full px-3 py-2 text-sm border rounded-lg ${getThemeClasses.inputBackground} ${getThemeClasses.inputBorder} ${getThemeClasses.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                />
+              </div>
+
+              {/* Sort by To-Do Date */}
+              <div>
+                <label
+                  className={`block text-xs font-medium ${getThemeClasses.text} mb-1`}
+                >
+                  Sort by Date
+                </label>
+                <select
+                  value={filters.sortByDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, sortByDate: e.target.value })
+                  }
+                  className={`w-full px-3 py-2 text-sm border rounded-lg ${getThemeClasses.inputBackground} ${getThemeClasses.inputBorder} ${getThemeClasses.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                >
+                  <option value="asc">Ascending</option>
+                  <option value="desc">Descending</option>
+                </select>
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex items-end">
+                <button
+                  onClick={resetFilters}
+                  className={`w-full px-3 py-2 text-sm rounded-lg transition-colors ${getThemeClasses.buttonSecondary}`}
+                >
+                  Reset Filters
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Summary */}
+            <div className="mt-3 flex items-center gap-2 text-xs">
+              <span className={getThemeClasses.textSecondary}>
+                Showing {filteredSubtasks.length} of {getAllSubtasks().length}{" "}
+                subtasks
+              </span>
+              {(filters.status || filters.parentTask || filters.todoDate) && (
+                <span className="text-blue-600 dark:text-blue-400">
+                  (Filtered)
+                </span>
+              )}
+              {filters.sortByDate === "desc" && (
+                <span className="text-blue-600 dark:text-blue-400">
+                  (Sorted: Descending)
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {showSubtaskForm === "table" && (
@@ -187,7 +403,7 @@ const TableViewSplit = ({
           <tbody
             className={`${getThemeClasses.cardBackground} divide-y ${getThemeClasses.tableBorder}`}
           >
-            {getAllSubtasks().map((subtask) => (
+            {filteredSubtasks.map((subtask) => (
               <tr
                 key={`${subtask.taskId}-${subtask.id}`}
                 className={getThemeClasses.tableRow}
@@ -362,6 +578,11 @@ const TableViewSplit = ({
             ))}
           </tbody>
         </table>
+        {filteredSubtasks.length === 0 && getAllSubtasks().length > 0 && (
+          <div className="text-center py-12 text-gray-500">
+            No subtasks match the selected filters. Try adjusting your filters.
+          </div>
+        )}
         {getAllSubtasks().length === 0 && (
           <div className="text-center py-12 text-gray-500">
             No subtasks yet. Add some tasks and subtasks to get started!
