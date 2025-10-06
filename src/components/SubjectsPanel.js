@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Plus, Trash2, GripVertical } from "lucide-react";
-import { getThemeClasses } from "../utils/helpers";
 
 const SubjectsPanel = ({
   subjects,
   isDarkMode,
+  getThemeClasses,
   onAddSubject,
   onDeleteSubject,
   onDragStart,
@@ -12,7 +12,7 @@ const SubjectsPanel = ({
   onDrop,
 }) => {
   const [newSubjectName, setNewSubjectName] = useState("");
-  const themeClasses = getThemeClasses(isDarkMode);
+  const themeClasses = getThemeClasses;
 
   const handleAddSubject = (e) => {
     e.preventDefault();
@@ -38,7 +38,7 @@ const SubjectsPanel = ({
             value={newSubjectName}
             onChange={(e) => setNewSubjectName(e.target.value)}
             placeholder="Enter subject name"
-            className={`flex-1 p-2 border rounded-lg ${themeClasses.input} ${themeClasses.inputBorder} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+            className={`flex-1 p-2 border rounded-lg ${themeClasses.inputBackground} ${themeClasses.inputBorder} ${themeClasses.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
           />
           <button
             type="submit"

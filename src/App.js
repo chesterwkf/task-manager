@@ -5,6 +5,8 @@ import TasksViewSplit from "./components/TasksViewSplit";
 import TableViewSplit from "./components/TableViewSplit";
 import KanbanBoardSplit from "./components/KanbanBoardSplit";
 import DetailModalSplit from "./components/DetailModalSplit";
+import SubjectsPanel from "./components/SubjectsPanel";
+import SubjectsViewSplit from "./components/SubjectsViewSplit";
 import {
   Plus,
   ChevronDown,
@@ -215,10 +217,13 @@ const TaskManager = () => {
     }
   }, [tasks]);
 
-  const [view, setView] = useState("tasks"); // 'tasks' or 'table'
+  const [view, setView] = useState("tasks"); // 'tasks', 'table', or 'board'
   const [expandedTasks, setExpandedTasks] = useState(new Set([1, 2]));
+  const [expandedSubjects, setExpandedSubjects] = useState(new Set()); // Track expanded subjects
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showSubtaskForm, setShowSubtaskForm] = useState(null);
+  const [showSubjectForm, setShowSubjectForm] = useState(false);
+  const [newSubject, setNewSubject] = useState("");
   const [newTask, setNewTask] = useState({ title: "" });
   const [newSubtask, setNewSubtask] = useState({
     title: "",
@@ -249,6 +254,22 @@ const TaskManager = () => {
 
   // Drag and drop state
   const [draggedItem, setDraggedItem] = useState(null);
+  const [subjects, setSubjects] = useState(() => {
+    try {
+      const saved = localStorage.getItem("taskManager-subjects");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure all subjects have taskIds array
+        return parsed.map((subject) => ({
+          ...subject,
+          taskIds: subject.taskIds || [],
+        }));
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
 
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -275,6 +296,13 @@ const TaskManager = () => {
     }
   }, [isDarkMode]);
 
+  // persist subjects
+  useEffect(() => {
+    try {
+      localStorage.setItem("taskManager-subjects", JSON.stringify(subjects));
+    } catch {}
+  }, [subjects]);
+
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode((prev) => !prev);
   }, []);
@@ -291,6 +319,56 @@ const TaskManager = () => {
     });
   }, []);
 
+  const toggleSubjectExpand = useCallback((subjectId) => {
+    setExpandedSubjects((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(subjectId)) {
+        updated.delete(subjectId);
+      } else {
+        updated.add(subjectId);
+      }
+      return updated;
+    });
+  }, []);
+
+  const addSubject = useCallback((name) => {
+    setSubjects((prev) => [...prev, { id: Date.now(), name, taskIds: [] }]);
+  }, []);
+
+  const deleteSubject = useCallback((subjectId) => {
+    setSubjects((prev) => prev.filter((s) => s.id !== subjectId));
+  }, []);
+
+  const handleSubjectDragStart = useCallback((e, id, type) => {
+    e.dataTransfer.setData("application/x-item", JSON.stringify({ id, type }));
+    e.dataTransfer.effectAllowed = "move";
+  }, []);
+
+  const handleSubjectDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const handleSubjectDrop = useCallback((e, subjectId) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData("application/x-item");
+    if (!data) return;
+    const parsed = JSON.parse(data);
+    if (parsed.type === "task") {
+      setSubjects((prev) =>
+        prev.map((s) => {
+          if (s.id === subjectId) {
+            const taskIds = s.taskIds || [];
+            if (!taskIds.includes(parsed.id)) {
+              return { ...s, taskIds: [...taskIds, parsed.id] };
+            }
+          }
+          return s;
+        })
+      );
+    }
+  }, []);
+
   const addTask = useCallback(() => {
     if (newTask.title.trim()) {
       const task = {
@@ -304,6 +382,33 @@ const TaskManager = () => {
       setShowTaskForm(false);
     }
   }, [newTask.title]);
+
+  const addTaskToSubject = useCallback(
+    (subjectId) => {
+      if (newTask.title.trim()) {
+        const taskId = Date.now();
+        const task = {
+          id: taskId,
+          title: newTask.title,
+          status: "todo",
+          subtasks: [],
+        };
+        setTasks((prev) => [...prev, task]);
+        setSubjects((prev) =>
+          prev.map((s) => {
+            if (s.id === subjectId) {
+              const taskIds = s.taskIds || [];
+              return { ...s, taskIds: [...taskIds, taskId] };
+            }
+            return s;
+          })
+        );
+        setNewTask({ title: "" });
+        setShowTaskForm(false);
+      }
+    },
+    [newTask.title]
+  );
 
   const addSubtask = useCallback(
     (taskId) => {
@@ -578,12 +683,19 @@ const TaskManager = () => {
 
   // Kanban board helper functions
   const getTodaysSubtasks = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date();
+    // Format date in local timezone as YYYY-MM-DD
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    
     const todaysSubtasks = [];
 
     tasks.forEach((task) => {
       task.subtasks.forEach((subtask) => {
-        if (subtask.todoDate === today) {
+        // Only show subtasks where todoDate is exactly today
+        if (subtask.todoDate === todayStr) {
           todaysSubtasks.push({
             ...subtask,
             taskTitle: task.title,
@@ -643,6 +755,16 @@ const TaskManager = () => {
         {view === "tasks" && (
           <TasksViewSplit
             tasks={tasks}
+            subjects={subjects}
+            expandedSubjects={expandedSubjects}
+            toggleSubjectExpand={toggleSubjectExpand}
+            showSubjectForm={showSubjectForm}
+            setShowSubjectForm={setShowSubjectForm}
+            newSubject={newSubject}
+            setNewSubject={setNewSubject}
+            addSubject={addSubject}
+            deleteSubject={deleteSubject}
+            handleSubjectDrop={handleSubjectDrop}
             expandedTasks={expandedTasks}
             toggleTaskExpand={toggleTaskExpand}
             deleteTask={deleteTask}
@@ -665,6 +787,7 @@ const TaskManager = () => {
             showTaskForm={showTaskForm}
             setShowTaskForm={setShowTaskForm}
             addTask={addTask}
+            addTaskToSubject={addTaskToSubject}
             getThemeClasses={getThemeClasses}
             getStatusColor={getStatusColor}
             formatDate={formatDate}
